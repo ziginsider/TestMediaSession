@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -156,6 +157,14 @@ class MediaService : Service() {
                 putLong(MediaMetadataCompat.METADATA_KEY_DURATION, track.duration)
             }
             mediaSession?.setMetadata(metadataBuilder.build())
+        }
+    }
+
+    val becomingNoiseReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent?.action) {
+                mediaSessionCallback.onPause()
+            }
         }
     }
 
