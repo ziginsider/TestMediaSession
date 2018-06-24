@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -81,6 +83,42 @@ class MediaService : Service() {
 
         override fun onPlay() {
             super.onPlay()
+
+            if (!exoPlayer?.playWhenReady!!) {
+                startService(Intent(applicationContext, MediaService::class.java))
+                val track = musicCatalog.currentTrack
+                updateMetadataFromTrack(track)
+                prepareToPlay(track.uri)
+
+                if (!audioFocusRequested) {
+                    audioFocusRequested = true
+                    var audioFocusResult = 0
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        audioFocusResult = audioManager?.requestAudioFocus(audioFocusRequest)!!
+                    } else {
+                        audioFocusResult = audioManager?.requestAudioFocus(
+                                this@MediaService.audioFocusChangeListener,
+                                AudioManager.STREAM_MUSIC,
+                                AudioManager.AUDIOFOCUS_GAIN
+                        )!!
+                    }
+                    if (audioFocusResult != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                        return
+                    }
+                }
+
+                mediaSession?.isActive = true
+                registerReceiver(becomingNoiseReceiver,
+                        IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+                exoPlayer?.playWhenReady = true
+            }
+
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_PLAYING
+
+            refreshNotificationAndForegroundStatus(currentState)
         }
 
         override fun onPause() {
