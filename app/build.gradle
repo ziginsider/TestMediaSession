@@ -17,4 +17,11 @@ dependencies {
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
+
+    //exo-player
+    implementation 'com.google.android.exoplayer:exoplayer:r2.4.0'
+    implementation 'com.google.android.exoplayer:extension-okhttp:r2.4.0'
+
+    //ok-http-3
+    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
 }
