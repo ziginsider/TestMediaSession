@@ -11,7 +11,7 @@ class TestMusicCatalog {
                 val artist: String,
                 val bitmap: Int,
                 val uri: Uri,
-                val duradtion: Long)
+                val duration: Long)
 
     val catalog = arrayOf(
             Track("Triangle",
