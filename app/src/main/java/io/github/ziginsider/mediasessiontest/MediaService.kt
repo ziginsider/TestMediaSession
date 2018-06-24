@@ -168,6 +168,17 @@ class MediaService : Service() {
         }
     }
 
+    private fun refreshNotificationAndForegroundStatus(playbackState: Int) {
+        when (playbackState) {
+            PlaybackStateCompat.STATE_PLAYING -> startForeground(NOTIFICATION_ID, getNotification(playbackState))
+            PlaybackStateCompat.STATE_PAUSED -> {
+                NotificationManagerCompat.from(this@MediaService).notify(NOTIFICATION_ID, getNotification(playbackState))
+                stopForeground(false)
+            }
+            else -> stopForeground(false)
+        }
+    }
+
     companion object {
 
         private const val NOTIFICATION_ID = 33
