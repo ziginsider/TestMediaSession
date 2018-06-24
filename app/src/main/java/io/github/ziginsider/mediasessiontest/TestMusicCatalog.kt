@@ -2,6 +2,9 @@ package io.github.ziginsider.mediasessiontest
 
 import android.net.Uri
 
+/**
+ * Mock music catalog
+ */
 class TestMusicCatalog {
 
     class Track(val title: String,
@@ -62,6 +65,4 @@ class TestMusicCatalog {
         }
         return currentTrack
     }
-
-    
 }
