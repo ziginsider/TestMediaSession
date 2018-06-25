@@ -121,7 +121,17 @@ class MediaService : Service() {
         }
 
         override fun onPause() {
+            if (exoPlayer?.playWhenReady!!) {
+                exoPlayer?.playWhenReady = false
+                unregisterReceiver(becomingNoiseReceiver)
+            }
 
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_PAUSED
+
+            refreshNotificationAndForegroundStatus(currentState)
         }
 
         override fun onStop() {
@@ -146,6 +156,9 @@ class MediaService : Service() {
                     PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
                     1F).build())
             currentState = PlaybackStateCompat.STATE_STOPPED
+
+            refreshNotificationAndForegroundStatus(currentState)
+            
             stopSelf()
         }
 
