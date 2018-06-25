@@ -172,7 +172,13 @@ class MediaService : Service() {
         }
 
         override fun onSkipToPrevious() {
-            super.onSkipToPrevious()
+            val track = musicCatalog.previous()
+            updateMetadataFromTrack(track)
+
+            refreshNotificationAndForegroundStatus(currentState)
+
+            prepareToPlay(track.uri)
+
         }
 
         private fun prepareToPlay(uri: Uri) {
