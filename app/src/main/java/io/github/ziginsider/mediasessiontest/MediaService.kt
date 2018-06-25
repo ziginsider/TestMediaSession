@@ -83,8 +83,6 @@ class MediaService : Service() {
         private var currentState = PlaybackStateCompat.STATE_STOPPED
 
         override fun onPlay() {
-            super.onPlay()
-
             if (!exoPlayer?.playWhenReady!!) {
                 startService(Intent(applicationContext, MediaService::class.java))
                 val track = musicCatalog.currentTrack
@@ -94,10 +92,10 @@ class MediaService : Service() {
                 if (!audioFocusRequested) {
                     audioFocusRequested = true
                     var audioFocusResult = 0
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        audioFocusResult = audioManager?.requestAudioFocus(audioFocusRequest)!!
+                    audioFocusResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        audioManager?.requestAudioFocus(audioFocusRequest)!!
                     } else {
-                        audioFocusResult = audioManager?.requestAudioFocus(
+                        audioManager?.requestAudioFocus(
                                 this@MediaService.audioFocusChangeListener,
                                 AudioManager.STREAM_MUSIC,
                                 AudioManager.AUDIOFOCUS_GAIN
@@ -123,11 +121,32 @@ class MediaService : Service() {
         }
 
         override fun onPause() {
-            super.onPause()
+
         }
 
         override fun onStop() {
-            super.onStop()
+            if (exoPlayer?.playWhenReady!!) {
+                exoPlayer?.playWhenReady = false
+                unregisterReceiver(becomingNoiseReceiver)
+            }
+
+            if (audioFocusRequested) {
+                audioFocusRequested = false
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    audioManager?.abandonAudioFocusRequest(audioFocusRequest)
+                } else {
+                    audioManager?.abandonAudioFocus(audioFocusChangeListener)
+                }
+            }
+
+            mediaSession?.isActive = false
+
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_STOPPED,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_STOPPED
+            stopSelf()
         }
 
         override fun onSkipToNext() {
