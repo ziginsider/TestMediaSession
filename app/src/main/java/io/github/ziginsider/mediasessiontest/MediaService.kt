@@ -158,12 +158,17 @@ class MediaService : Service() {
             currentState = PlaybackStateCompat.STATE_STOPPED
 
             refreshNotificationAndForegroundStatus(currentState)
-            
+
             stopSelf()
         }
 
         override fun onSkipToNext() {
-            super.onSkipToNext()
+            val track = musicCatalog.next()
+            updateMetadataFromTrack(track)
+
+            refreshNotificationAndForegroundStatus(currentState)
+
+            prepareToPlay(track.uri)
         }
 
         override fun onSkipToPrevious() {
