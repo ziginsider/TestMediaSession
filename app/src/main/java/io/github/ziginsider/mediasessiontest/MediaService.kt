@@ -1,6 +1,7 @@
 package io.github.ziginsider.mediasessiontest
 
 import android.annotation.SuppressLint
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -14,8 +15,12 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.support.v4.app.NotificationCompat
+import android.support.v4.app.NotificationCompat.*
 import android.support.v4.app.NotificationManagerCompat
+import android.support.v4.content.ContextCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.google.android.exoplayer2.SimpleExoPlayer
@@ -71,7 +76,10 @@ class MediaService : Service() {
 
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
-            AudioManager.AUDIOFOCUS_GAIN -> mediaSessionCallback.onPlay()
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                mediaSessionCallback.onPlay()
+                //TODO WTF?
+            }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mediaSessionCallback.onPause()
             else -> mediaSessionCallback.onPause()
         }
@@ -215,11 +223,49 @@ class MediaService : Service() {
         when (playbackState) {
             PlaybackStateCompat.STATE_PLAYING -> startForeground(NOTIFICATION_ID, getNotification(playbackState))
             PlaybackStateCompat.STATE_PAUSED -> {
-                NotificationManagerCompat.from(this@MediaService).notify(NOTIFICATION_ID, getNotification(playbackState))
+                NotificationManagerCompat.from(this@MediaService).notify(NOTIFICATION_ID,
+                        getNotification(playbackState))
                 stopForeground(false)
             }
-            else -> stopForeground(false)
+            else -> stopForeground(true)
         }
+    }
+
+    private fun getNotification(playbackState: Int): Notification {
+        val builder = MediaStyleHelper.from(this, mediaSession)
+
+        builder.addAction(Action(android.R.drawable.ic_media_previous,
+                "previous",
+                MediaButtonReceiver.buildMediaButtonPendingIntent(this,
+                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)))
+
+        if (playbackState == PlaybackStateCompat.STATE_PLAYING) {
+            builder.addAction(Action(android.R.drawable.ic_media_pause,
+                    "pause",
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PAUSE)))
+        } else {
+            builder.addAction(Action(android.R.drawable.ic_media_play,
+                    "play",
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PLAY)))
+        }
+
+        builder.addAction(Action(android.R.drawable.ic_media_next,
+                "next",
+                MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)))
+        builder.setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()
+                .setShowActionsInCompactView(1)
+                .setShowCancelButton(true)
+                .setCancelButtonIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this,
+                        PlaybackStateCompat.ACTION_STOP))
+                .setMediaSession(mediaSession?.sessionToken))
+        builder.setSmallIcon(R.mipmap.ic_launcher)
+        builder.color = ContextCompat.getColor(this, R.color.colorPrimaryDark)
+        builder.setShowWhen(false)
+        builder.priority = PRIORITY_HIGH
+        builder.setOnlyAlertOnce(true)
+        builder.setChannelId(NOTIFICATION_CHANNEL_ID)
+
+        return builder.build()
     }
 
     companion object {
