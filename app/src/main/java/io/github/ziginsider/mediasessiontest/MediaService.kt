@@ -45,6 +45,8 @@ class MediaService : Service() {
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusRequested = false
+    private var currentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK
+    private var playOnFocusGain = false
     private var exoPlayer: SimpleExoPlayer? = null
     private var extractorsFactory: ExtractorsFactory? = null
     private var dataSourceFactory: com.google.android.exoplayer2.upstream.DataSource.Factory? = null
@@ -76,12 +78,44 @@ class MediaService : Service() {
 
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
-            AudioManager.AUDIOFOCUS_GAIN -> {
-                mediaSessionCallback.onPlay()
-                //TODO WTF?
+            AudioManager.AUDIOFOCUS_GAIN -> currentAudioFocusState = AUDIO_FOCUSED
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> currentAudioFocusState = AUDIO_NO_FOCUS_CAN_DUCK
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                currentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK
+                playOnFocusGain = exoPlayer != null && exoPlayer?.playWhenReady!!
             }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mediaSessionCallback.onPause()
-            else -> mediaSessionCallback.onPause()
+            AudioManager.AUDIOFOCUS_LOSS -> currentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK
+        }
+
+        if (exoPlayer != null) {
+            configurePlayerState()
+        }
+    }
+
+    private fun configurePlayerState() {
+        if (currentAudioFocusState == AUDIO_NO_FOCUS_NO_DUCK) {
+            playerPause()
+        } else {
+            registerReceiver(becomingNoiseReceiver,
+                    IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+            if (currentAudioFocusState == AUDIO_NO_FOCUS_CAN_DUCK) {
+                exoPlayer?.volume = VOLUME_DUCK
+            } else {
+                exoPlayer?.volume = VOLUME_NORMAL
+            }
+
+            // If we were playing when we lost focus, we need to resume playing.
+            if (playOnFocusGain) {
+                exoPlayer?.playWhenReady = true
+                playOnFocusGain = false
+            }
+        }
+    }
+
+    private fun playerPause() {
+        exoPlayer?.let {
+            it.playWhenReady = false
+            unregisterReceiver(becomingNoiseReceiver)
         }
     }
 
@@ -120,10 +154,14 @@ class MediaService : Service() {
                 exoPlayer?.playWhenReady = true
             }
 
+            //playOnFocusGain = true
+
             mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
                     PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
                     1F).build())
             currentState = PlaybackStateCompat.STATE_PLAYING
+
+            //configurePlayerState()
 
             refreshNotificationAndForegroundStatus(currentState)
         }
@@ -214,7 +252,7 @@ class MediaService : Service() {
     val becomingNoiseReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent?.action) {
-                mediaSessionCallback.onPause()
+                playerPause()
             }
         }
     }
@@ -272,5 +310,11 @@ class MediaService : Service() {
 
         private const val NOTIFICATION_ID = 33
         private const val NOTIFICATION_CHANNEL_ID = "media_channel"
+        private const val AUDIO_NO_FOCUS_NO_DUCK = 0
+        private const val AUDIO_NO_FOCUS_CAN_DUCK = 1
+        private const val AUDIO_FOCUSED = 2
+        private const val VOLUME_DUCK = 0.2F
+        private const val VOLUME_NORMAL = 1.0F
+
     }
 }
