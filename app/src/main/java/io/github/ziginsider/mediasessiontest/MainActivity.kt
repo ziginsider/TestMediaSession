@@ -19,7 +19,7 @@ import kotlinx.android.synthetic.main.activity_main.stopButton
 
 class MainActivity : AppCompatActivity() {
 
-    private var mediaServiceBinder: MediaService.PlayerServiceBinder? = null
+    private var mediaServiceBinder: MediaService.MediaServiceBinder? = null
     private var mediaController: MediaControllerCompat? = null
     private var callback: MediaControllerCompat.Callback? = null
     private var serviceConnection: ServiceConnection? = null
@@ -31,10 +31,19 @@ class MainActivity : AppCompatActivity() {
         callback = object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                 state?.let {
-                    val playing = state.state == PlaybackStateCompat.STATE_PLAYING
+                    val playing = it.state == PlaybackStateCompat.STATE_PLAYING
                     playButton.isEnabled = !playing
                     pauseButton.isEnabled = playing
                     stopButton.isEnabled = playing
+
+                    when (it.state) {
+                        PlaybackStateCompat.STATE_PLAYING -> callbackPlay()
+                        PlaybackStateCompat.STATE_PAUSED -> callbackPause()
+                        PlaybackStateCompat.STATE_STOPPED -> callbackStop()
+                        PlaybackStateCompat.STATE_SKIPPING_TO_NEXT -> callbackNext()
+                        PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS -> callbackPrev()
+                        else -> callbackUnknown()
+                    }
                 }
             }
         }
@@ -42,7 +51,7 @@ class MainActivity : AppCompatActivity() {
         serviceConnection = object : ServiceConnection {
 
             override fun onServiceConnected(className: ComponentName?, service: IBinder?) {
-                mediaServiceBinder = service as MediaService.PlayerServiceBinder
+                mediaServiceBinder = service as MediaService.MediaServiceBinder
                 try {
                     mediaController = MediaControllerCompat(this@MainActivity,
                             mediaServiceBinder?.getMediaSessionToken()!!)
@@ -72,43 +81,52 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun nextTrack() {
-        mediaController?.let {
-            it.transportControls.skipToNext()
-            outputTextView.append("next track ${mediaController?.metadata?.description?.title} was chosen...\n")
-            buttonChangeColor(BUTTON_NEXT)
-        }
+        mediaController?.transportControls?.skipToNext()
     }
 
     private fun pausePlaying() {
-        mediaController?.let {
-            it.transportControls.pause()
-            outputTextView.append("track ${mediaController?.metadata?.description?.title} was paused...\n")
-            buttonChangeColor(BUTTON_PAUSE)
-        }
+        mediaController?.transportControls?.pause()
     }
 
     private fun stopPlaying() {
-        mediaController?.let {
-            it.transportControls.stop()
-            outputTextView.append("track ${mediaController?.metadata?.description?.title} was stopped...\n")
-            buttonChangeColor(BUTTON_STOP)
-        }
+        mediaController?.transportControls?.stop()
     }
 
     private fun playTrack() {
-        mediaController?.let {
-            it.transportControls.play()
-            outputTextView.append("track ${mediaController?.metadata?.description?.title} is playing...\n")
-            buttonChangeColor(BUTTON_PLAY)
-        }
+        mediaController?.transportControls?.play()
     }
 
     private fun previousTrack() {
-        mediaController?.let {
-            it.transportControls.skipToPrevious()
-            outputTextView.append("previous track ${mediaController?.metadata?.description?.title} was chosen...\n")
-            buttonChangeColor(BUTTON_PREVIOUS)
-        }
+        mediaController?.transportControls?.skipToPrevious()
+    }
+
+    private fun callbackNext() {
+        outputTextView.append("next track ${mediaController?.metadata?.description?.title} was chosen...\n")
+        buttonChangeColor(BUTTON_NEXT)
+    }
+
+    private fun callbackPause() {
+        outputTextView.append("track ${mediaController?.metadata?.description?.title} was paused...\n")
+        buttonChangeColor(BUTTON_PAUSE)
+    }
+
+    private fun callbackStop() {
+        outputTextView.append("track ${mediaController?.metadata?.description?.title} was stopped...\n")
+        buttonChangeColor(BUTTON_STOP)
+    }
+
+    private fun callbackPlay() {
+        outputTextView.append("track ${mediaController?.metadata?.description?.title} is playing...\n")
+        buttonChangeColor(BUTTON_PLAY)
+    }
+
+    private fun callbackPrev() {
+        outputTextView.append("previous track ${mediaController?.metadata?.description?.title} was chosen...\n")
+        buttonChangeColor(BUTTON_PREVIOUS)
+    }
+
+    private fun callbackUnknown() {
+        outputTextView.append("Unknown playback state change...\n")
     }
 
     fun buttonChangeColor(typeButton: Int) {

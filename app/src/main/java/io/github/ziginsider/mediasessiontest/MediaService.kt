@@ -126,10 +126,10 @@ class MediaService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder {
-        return PlayerServiceBinder()
+        return MediaServiceBinder()
     }
 
-    inner class PlayerServiceBinder : Binder() {
+    inner class MediaServiceBinder : Binder() {
         fun getMediaSessionToken() = mediaSession?.sessionToken
     }
 
