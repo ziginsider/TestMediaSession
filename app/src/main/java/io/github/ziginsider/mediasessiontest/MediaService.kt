@@ -69,8 +69,7 @@ class MediaService : Service() {
             val notificationChannel = NotificationChannel(NOTIFICATION_CHANNEL_ID,
                     "Player controls",
                     NotificationManagerCompat.IMPORTANCE_DEFAULT)
-            val notificationManager
-                    = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(notificationChannel)
 
             val audioAtributes = AudioAttributes.Builder()
@@ -220,8 +219,7 @@ class MediaService : Service() {
 
                 if (!audioFocusRequested) {
                     audioFocusRequested = true
-                    var audioFocusResult = 0
-                    audioFocusResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    var audioFocusResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         audioManager?.requestAudioFocus(audioFocusRequest)!!
                     } else {
                         audioManager?.requestAudioFocus(

@@ -41,6 +41,7 @@
         app:layout_constraintLeft_toRightOf="@id/stopButton" />
 
     <TextView
+        android:id="@+id/outputTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="start MediaSession..."
