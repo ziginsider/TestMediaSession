@@ -14,7 +14,6 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationCompat.*
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.content.ContextCompat
@@ -70,7 +69,8 @@ class MediaService : Service() {
             val notificationChannel = NotificationChannel(NOTIFICATION_CHANNEL_ID,
                     "Player controls",
                     NotificationManagerCompat.IMPORTANCE_DEFAULT)
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager
+                    = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(notificationChannel)
 
             val audioAtributes = AudioAttributes.Builder()
@@ -138,7 +138,8 @@ class MediaService : Service() {
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
         }
 
-        override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
+        override fun onTracksChanged(trackGroups: TrackGroupArray?,
+                                     trackSelections: TrackSelectionArray?) {
         }
 
         override fun onPlayerError(error: ExoPlaybackException?) {
@@ -163,7 +164,9 @@ class MediaService : Service() {
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> currentAudioFocusState = AUDIO_FOCUSED
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> currentAudioFocusState = AUDIO_NO_FOCUS_CAN_DUCK
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                currentAudioFocusState = AUDIO_NO_FOCUS_CAN_DUCK
+            }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 currentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK
                 playOnFocusGain = exoPlayer != null && exoPlayer?.playWhenReady!!
@@ -343,7 +346,8 @@ class MediaService : Service() {
 
     private fun refreshNotificationAndForegroundStatus(playbackState: Int) {
         when (playbackState) {
-            PlaybackStateCompat.STATE_PLAYING -> startForeground(NOTIFICATION_ID, getNotification(playbackState))
+            PlaybackStateCompat.STATE_PLAYING -> startForeground(NOTIFICATION_ID,
+                    getNotification(playbackState))
             PlaybackStateCompat.STATE_PAUSED -> {
                 NotificationManagerCompat.from(this@MediaService).notify(NOTIFICATION_ID,
                         getNotification(playbackState))
@@ -364,16 +368,19 @@ class MediaService : Service() {
         if (playbackState == PlaybackStateCompat.STATE_PLAYING) {
             builder.addAction(Action(android.R.drawable.ic_media_pause,
                     "pause",
-                    MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PAUSE)))
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(this,
+                            PlaybackStateCompat.ACTION_PAUSE)))
         } else {
             builder.addAction(Action(android.R.drawable.ic_media_play,
                     "play",
-                    MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PLAY)))
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(this,
+                            PlaybackStateCompat.ACTION_PLAY)))
         }
 
         builder.addAction(Action(android.R.drawable.ic_media_next,
                 "next",
-                MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)))
+                MediaButtonReceiver.buildMediaButtonPendingIntent(this,
+                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT)))
         builder.setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()
                 .setShowActionsInCompactView(1)
                 .setShowCancelButton(true)
