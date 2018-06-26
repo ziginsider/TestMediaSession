@@ -219,7 +219,7 @@ class MediaService : Service() {
 
                 if (!audioFocusRequested) {
                     audioFocusRequested = true
-                    var audioFocusResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val audioFocusResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         audioManager?.requestAudioFocus(audioFocusRequest)!!
                     } else {
                         audioManager?.requestAudioFocus(
@@ -239,14 +239,7 @@ class MediaService : Service() {
                 exoPlayer?.playWhenReady = true
             }
 
-            //playOnFocusGain = true
-
-            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1F).build())
-            currentState = PlaybackStateCompat.STATE_PLAYING
-
-            //configurePlayerState()
+            updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
 
             refreshNotificationAndForegroundStatus(currentState)
         }
@@ -257,10 +250,7 @@ class MediaService : Service() {
                 unregisterReceiver(becomingNoiseReceiver)
             }
 
-            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1F).build())
-            currentState = PlaybackStateCompat.STATE_PAUSED
+            updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
 
             refreshNotificationAndForegroundStatus(currentState)
         }
@@ -283,10 +273,7 @@ class MediaService : Service() {
 
             mediaSession?.isActive = false
 
-            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_STOPPED,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1F).build())
-            currentState = PlaybackStateCompat.STATE_STOPPED
+            updatePlaybackState(PlaybackStateCompat.STATE_STOPPED)
 
             refreshNotificationAndForegroundStatus(currentState)
 
@@ -304,10 +291,11 @@ class MediaService : Service() {
 
             prepareToPlay(track.uri)
 
-            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1F).build())
-            currentState = PlaybackStateCompat.STATE_PLAYING
+            if (exoPlayer?.playWhenReady!!) {
+                updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
+            } else {
+                updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            }
 
             refreshNotificationAndForegroundStatus(currentState)
         }
@@ -316,19 +304,24 @@ class MediaService : Service() {
             val track = musicCatalog.previous()
             updateMetadataFromTrack(track)
 
-            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1F).build())
-            currentState = PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS
+            updatePlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS)
 
             prepareToPlay(track.uri)
 
-            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1F).build())
-            currentState = PlaybackStateCompat.STATE_PLAYING
+            if (exoPlayer?.playWhenReady!!) {
+                updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
+            } else {
+                updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            }
 
             refreshNotificationAndForegroundStatus(currentState)
+        }
+
+        private fun updatePlaybackState(playbackState: Int) {
+            mediaSession?.setPlaybackState(stateBuilder.setState(playbackState,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = playbackState
         }
 
         private fun prepareToPlay(uri: Uri) {
