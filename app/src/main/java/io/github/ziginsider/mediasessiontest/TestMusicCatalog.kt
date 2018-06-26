@@ -13,7 +13,7 @@ class TestMusicCatalog {
                 val uri: Uri,
                 val duration: Long)
 
-    val catalog = arrayOf(
+    private val catalog = arrayOf(
             Track("Ice and Snow",
                     "Rafael Krux",
                     R.drawable.image1,
@@ -43,6 +43,7 @@ class TestMusicCatalog {
 
     val maxTrackIndex = catalog.size - 1
     var currentTrackIndex = 0
+    val countTracks = catalog.size
 
     var currentTrack = catalog[0]
         get() = catalog[currentTrackIndex]
@@ -65,4 +66,6 @@ class TestMusicCatalog {
         }
         return currentTrack
     }
+
+    fun getTrackByIndex(index: Int) = catalog[index]
 }

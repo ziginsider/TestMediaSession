@@ -3,6 +3,7 @@ package io.github.ziginsider.mediasessiontest
 import android.annotation.SuppressLint
 import android.app.*
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -13,10 +14,15 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.app.NotificationCompat.*
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.content.ContextCompat
+import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+import android.support.v4.media.MediaBrowserServiceCompat
+import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
@@ -37,7 +43,7 @@ import com.google.android.exoplayer2.util.Util
 import okhttp3.OkHttpClient
 import java.io.File
 
-class MediaService : Service() {
+class MediaService : MediaBrowserServiceCompat() {
 
     private val stateBuilder = PlaybackStateCompat.Builder().setActions(
             PlaybackStateCompat.ACTION_PLAY
@@ -126,6 +132,9 @@ class MediaService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder {
+        if (SERVICE_INTERFACE == intent?.action) {
+            return super.onBind(intent)
+        }
         return MediaServiceBinder()
     }
 
@@ -133,7 +142,38 @@ class MediaService : Service() {
         fun getMediaSessionToken() = mediaSession?.sessionToken
     }
 
+    override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot? {
+        return BrowserRoot("Root", null)
+    }
+
+    override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaBrowserCompat.MediaItem>>) {
+        var data = ArrayList<MediaBrowserCompat.MediaItem>(musicCatalog.countTracks)
+        val descriptionBuilder = MediaDescriptionCompat.Builder()
+
+        for (i in 0..musicCatalog.countTracks) {
+            val track = musicCatalog.getTrackByIndex(i)
+            val description = descriptionBuilder
+                    .setDescription(track.artist)
+                    .setTitle(track.title)
+                    .setSubtitle(track.artist)
+                    .setIconUri(Uri.Builder()
+                            .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+                            .authority(resources
+                                    .getResourcePackageName(track.bitmap))
+                            .appendPath(resources
+                                    .getResourceTypeName(track.bitmap))
+                            .appendPath(resources
+                                    .getResourceEntryName(track.bitmap))
+                            .build())
+                    .setMediaId(Integer.toString(i))
+                    .build();
+            data.add(MediaBrowserCompat.MediaItem(description, FLAG_PLAYABLE))
+        }
+        result.sendResult(data)
+    }
+
     private val exoPlayerListener = object : ExoPlayer.EventListener {
+
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
         }
 
@@ -210,12 +250,16 @@ class MediaService : Service() {
         private var currentUri: Uri? = null
         private var currentState = PlaybackStateCompat.STATE_STOPPED
 
-        override fun onPlay() {
+        override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
+            playTrack(musicCatalog.getTrackByIndex(Integer.parseInt(mediaId)))
+        }
+
+        private fun playTrack(trackByIndex: TestMusicCatalog.Track) {
             if (!exoPlayer?.playWhenReady!!) {
                 startService(Intent(applicationContext, MediaService::class.java))
-                val track = musicCatalog.currentTrack
-                updateMetadataFromTrack(track)
-                prepareToPlay(track.uri)
+                //val track = musicCatalog.currentTrack
+                updateMetadataFromTrack(trackByIndex)
+                prepareToPlay(trackByIndex.uri)
 
                 if (!audioFocusRequested) {
                     audioFocusRequested = true
@@ -242,6 +286,10 @@ class MediaService : Service() {
             updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
 
             refreshNotificationAndForegroundStatus(currentState)
+        }
+
+        override fun onPlay() {
+            playTrack(musicCatalog.currentTrack)
         }
 
         override fun onPause() {
