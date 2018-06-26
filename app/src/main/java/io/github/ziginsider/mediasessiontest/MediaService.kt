@@ -1,10 +1,7 @@
 package io.github.ziginsider.mediasessiontest
 
 import android.annotation.SuppressLint
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
+import android.app.*
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -23,9 +20,22 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import com.google.android.exoplayer2.DefaultLoadControl
+import com.google.android.exoplayer2.DefaultRenderersFactory
+import com.google.android.exoplayer2.ExoPlayerFactory
 import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
+import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.source.ExtractorMediaSource
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.upstream.cache.CacheDataSource
+import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory
+import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor
+import com.google.android.exoplayer2.upstream.cache.SimpleCache
+import com.google.android.exoplayer2.util.Util
+import okhttp3.OkHttpClient
+import java.io.File
 
 class MediaService : Service() {
 
@@ -74,6 +84,34 @@ class MediaService : Service() {
                     .setAudioAttributes(audioAtributes)
                     .build()
         }
+
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        mediaSession = MediaSessionCompat(this, "MediaService")
+        mediaSession?.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS
+                or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
+        mediaSession?.setCallback(mediaSessionCallback)
+
+        val activityIntent = Intent(applicationContext, MainActivity::class.java)
+        mediaSession?.setSessionActivity(PendingIntent.getActivity(applicationContext, 0,
+                activityIntent, 0))
+
+        val mediaButtonIntent = Intent(Intent.ACTION_MEDIA_BUTTON, null, applicationContext,
+                MediaButtonReceiver::class.java)
+        mediaSession?.setMediaButtonReceiver(PendingIntent.getBroadcast(applicationContext, 0,
+                mediaButtonIntent, 0))
+
+        exoPlayer = ExoPlayerFactory.newSimpleInstance(DefaultRenderersFactory(this),
+                DefaultTrackSelector(), DefaultLoadControl())
+        exoPlayer?.addListener(exoPlayerListener)
+        val httpDataSourceFactory = OkHttpDataSourceFactory(OkHttpClient(),
+                Util.getUserAgent(this, getString(R.string.app_name)), null)
+        val cache = SimpleCache(File(this.cacheDir.absolutePath + "/exoplayer"),
+                LeastRecentlyUsedCacheEvictor(CACHE_SIZE))
+        dataSourceFactory = CacheDataSourceFactory(cache,
+                httpDataSourceFactory,
+                CacheDataSource.FLAG_BLOCK_ON_CACHE or CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        extractorsFactory = DefaultExtractorsFactory()
     }
 
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
@@ -315,6 +353,6 @@ class MediaService : Service() {
         private const val AUDIO_FOCUSED = 2
         private const val VOLUME_DUCK = 0.2F
         private const val VOLUME_NORMAL = 1.0F
-
+        private const val CACHE_SIZE = 1024 * 1024 * 100L //100Mb
     }
 }
