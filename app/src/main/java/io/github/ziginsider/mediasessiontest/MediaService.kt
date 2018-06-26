@@ -297,19 +297,38 @@ class MediaService : Service() {
             val track = musicCatalog.next()
             updateMetadataFromTrack(track)
 
-            refreshNotificationAndForegroundStatus(currentState)
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_SKIPPING_TO_NEXT
 
             prepareToPlay(track.uri)
+
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_PLAYING
+
+            refreshNotificationAndForegroundStatus(currentState)
         }
 
         override fun onSkipToPrevious() {
             val track = musicCatalog.previous()
             updateMetadataFromTrack(track)
 
-            refreshNotificationAndForegroundStatus(currentState)
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS
 
             prepareToPlay(track.uri)
 
+            mediaSession?.setPlaybackState(stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F).build())
+            currentState = PlaybackStateCompat.STATE_PLAYING
+
+            refreshNotificationAndForegroundStatus(currentState)
         }
 
         private fun prepareToPlay(uri: Uri) {

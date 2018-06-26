@@ -40,10 +40,17 @@
         android:text="Next"
         app:layout_constraintLeft_toRightOf="@id/stopButton" />
 
-    <TextView
-        android:id="@+id/outputTextView"
-        android:layout_width="wrap_content"
+    <ScrollView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="start MediaSession..."
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent" >
+        <TextView
+            android:id="@+id/outputTextView"
+            android:layout_margin="5dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="start MediaSession..."
+            />
+    </ScrollView>
+
 </android.support.constraint.ConstraintLayout>
