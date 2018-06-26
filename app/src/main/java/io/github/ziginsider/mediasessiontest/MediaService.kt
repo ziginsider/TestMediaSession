@@ -11,7 +11,9 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.Uri
+import android.os.Binder
 import android.os.Build
+import android.os.IBinder
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationCompat.*
 import android.support.v4.app.NotificationManagerCompat
@@ -20,15 +22,14 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.DefaultRenderersFactory
-import com.google.android.exoplayer2.ExoPlayerFactory
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.source.ExtractorMediaSource
+import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory
 import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor
@@ -123,6 +124,40 @@ class MediaService : Service() {
         super.onDestroy()
         mediaSession?.release()
         exoPlayer?.release()
+    }
+
+    override fun onBind(intent: Intent?): IBinder {
+        return PlayerServiceBinder()
+    }
+
+    inner class PlayerServiceBinder : Binder() {
+        fun getMediaSessionToken() = mediaSession?.sessionToken
+    }
+
+    private val exoPlayerListener = object : ExoPlayer.EventListener {
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
+        }
+
+        override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
+        }
+
+        override fun onPlayerError(error: ExoPlaybackException?) {
+        }
+
+        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+            if (playWhenReady && playbackState == ExoPlayer.STATE_ENDED) {
+                mediaSessionCallback.onSkipToNext()
+            }
+        }
+
+        override fun onLoadingChanged(isLoading: Boolean) {
+        }
+
+        override fun onPositionDiscontinuity() {
+        }
+
+        override fun onTimelineChanged(timeline: Timeline?, manifest: Any?) {
+        }
     }
 
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
