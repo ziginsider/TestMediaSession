@@ -405,5 +405,11 @@ class MediaService : Service() {
         private const val VOLUME_DUCK = 0.2F
         private const val VOLUME_NORMAL = 1.0F
         private const val CACHE_SIZE = 1024 * 1024 * 100L //100Mb
+
+        private const val BUTTON_PLAY = 1
+        private const val BUTTON_STOP = 2
+        private const val BUTTON_PAUSE = 3
+        private const val BUTTON_NEXT = 4
+        private const val BUTTON_PREVIOUS = 5
     }
 }
