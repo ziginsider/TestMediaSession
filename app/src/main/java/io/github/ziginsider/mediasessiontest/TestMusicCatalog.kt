@@ -68,4 +68,5 @@ class TestMusicCatalog {
     }
 
     fun getTrackByIndex(index: Int) = catalog[index]
+    fun getCatalog() = catalog
 }

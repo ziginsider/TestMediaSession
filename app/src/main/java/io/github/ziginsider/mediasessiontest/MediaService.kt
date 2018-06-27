@@ -27,6 +27,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory
@@ -147,11 +148,12 @@ class MediaService : MediaBrowserServiceCompat() {
     }
 
     override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaBrowserCompat.MediaItem>>) {
-        var data = ArrayList<MediaBrowserCompat.MediaItem>(musicCatalog.countTracks)
+        val data = ArrayList<MediaBrowserCompat.MediaItem>(musicCatalog.countTracks)
         val descriptionBuilder = MediaDescriptionCompat.Builder()
 
-        for (i in 0..musicCatalog.countTracks) {
-            val track = musicCatalog.getTrackByIndex(i)
+        for ((i, track) in musicCatalog.getCatalog().withIndex()) {
+            Log.i("TAG", "track = ${track.title}")
+            //val track = musicCatalog.getTrackByIndex(i)
             val description = descriptionBuilder
                     .setDescription(track.artist)
                     .setTitle(track.title)
@@ -166,7 +168,7 @@ class MediaService : MediaBrowserServiceCompat() {
                                     .getResourceEntryName(track.bitmap))
                             .build())
                     .setMediaId(Integer.toString(i))
-                    .build();
+                    .build()
             data.add(MediaBrowserCompat.MediaItem(description, FLAG_PLAYABLE))
         }
         result.sendResult(data)
