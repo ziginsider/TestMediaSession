@@ -53,6 +53,7 @@ class MediaService : MediaBrowserServiceCompat() {
                     or PlaybackStateCompat.ACTION_PLAY_PAUSE
                     or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                     or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                    or PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
     )
 
     private val metadataBuilder = MediaMetadataCompat.Builder()
@@ -243,7 +244,11 @@ class MediaService : MediaBrowserServiceCompat() {
     private fun playerPause() {
         exoPlayer?.let {
             it.playWhenReady = false
-            unregisterReceiver(becomingNoiseReceiver)
+            try {
+                unregisterReceiver(becomingNoiseReceiver)
+            } catch (e: IllegalArgumentException) {
+                e.stackTrace
+            }
         }
     }
 
@@ -419,6 +424,8 @@ class MediaService : MediaBrowserServiceCompat() {
             Log.d("TAG", ">>>>>>>>>>>>> onMediaButtonEvent ${mediaButtonEvent?.action}")
             return super.onMediaButtonEvent(mediaButtonEvent)
         }
+
+
     }
 
     val becomingNoiseReceiver = object : BroadcastReceiver() {

@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.os.RemoteException
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.view.KeyEvent
 import kotlinx.android.synthetic.main.activity_main.nextButton
 import kotlinx.android.synthetic.main.activity_main.outputTextView
 import kotlinx.android.synthetic.main.activity_main.pauseButton
@@ -18,11 +19,13 @@ import kotlinx.android.synthetic.main.activity_main.prevButton
 import kotlinx.android.synthetic.main.activity_main.stopButton
 
 class MainActivity : AppCompatActivity() {
-
     private var mediaServiceBinder: MediaService.MediaServiceBinder? = null
+
     private var mediaController: MediaControllerCompat? = null
     private var callback: MediaControllerCompat.Callback? = null
     private var serviceConnection: ServiceConnection? = null
+    private var bluetoothIntentListener: BluetoothIntentListener? = null
+    private var callButtonEventListener: BluetoothIntentListener.CallButtonEventListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +82,17 @@ class MainActivity : AppCompatActivity() {
         stopButton.setOnClickListener { stopPlaying() }
         pauseButton.setOnClickListener { pausePlaying() }
         nextButton.setOnClickListener { nextTrack() }
+
+        //prepare to catch bluetooth incoming call button press event
+        bluetoothIntentListener = BluetoothIntentListener.getInstance(this)
+
+        callButtonEventListener = object : BluetoothIntentListener.CallButtonEventListener {
+            override fun answerOrHangoutButtonEvent() {
+                outputTextView.append(">>> Hangup of bluetooth headset pressed <<<\n")
+            }
+        }
+
+        bluetoothIntentListener?.init(callButtonEventListener)
     }
 
     private fun nextTrack() {
@@ -153,6 +167,7 @@ class MainActivity : AppCompatActivity() {
             mediaController = null
         }
         unbindService(serviceConnection)
+        bluetoothIntentListener?.destroy()
     }
 
     companion object {
