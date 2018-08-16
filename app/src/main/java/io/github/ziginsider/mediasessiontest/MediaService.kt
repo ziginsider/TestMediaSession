@@ -394,6 +394,31 @@ class MediaService : MediaBrowserServiceCompat() {
             }
             mediaSession?.setMetadata(metadataBuilder.build())
         }
+
+        override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+            if (query == "play next") {
+                //onSkipToNext()
+                Log.d("TAG", ">>>>>>>>>>>>> play next")
+            }
+            when (query) {
+                "media next" -> onSkipToNext()
+                "media previous" -> onSkipToPrevious()
+                "media stop" -> onStop()
+                "media pause" -> onPause()
+                "media play" -> onPlay()
+            }
+            super.onPlayFromSearch(query, extras)
+        }
+
+        override fun onCustomAction(action: String?, extras: Bundle?) {
+            Log.d("TAG", ">>>>>>>>>>>>> onCustomAction $action")
+            super.onCustomAction(action, extras)
+        }
+
+        override fun onMediaButtonEvent(mediaButtonEvent: Intent?): Boolean {
+            Log.d("TAG", ">>>>>>>>>>>>> onMediaButtonEvent ${mediaButtonEvent?.action}")
+            return super.onMediaButtonEvent(mediaButtonEvent)
+        }
     }
 
     val becomingNoiseReceiver = object : BroadcastReceiver() {

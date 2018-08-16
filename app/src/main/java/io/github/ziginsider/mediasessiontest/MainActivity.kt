@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
                             mediaServiceBinder?.getMediaSessionToken()!!)
                     mediaController?.registerCallback(callback as MediaControllerCompat.Callback)
                     callback?.onPlaybackStateChanged(mediaController?.playbackState)
+                    mediaController?.transportControls?.play()
                 } catch (e: RemoteException) {
                     mediaController = null
                 }
