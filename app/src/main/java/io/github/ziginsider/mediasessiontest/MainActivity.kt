@@ -4,19 +4,13 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
 import android.os.RemoteException
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import android.view.KeyEvent
-import kotlinx.android.synthetic.main.activity_main.nextButton
-import kotlinx.android.synthetic.main.activity_main.outputTextView
-import kotlinx.android.synthetic.main.activity_main.pauseButton
-import kotlinx.android.synthetic.main.activity_main.playButton
-import kotlinx.android.synthetic.main.activity_main.prevButton
-import kotlinx.android.synthetic.main.activity_main.stopButton
+import androidx.appcompat.app.AppCompatActivity
+import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
     private var mediaServiceBinder: MediaService.MediaServiceBinder? = null
@@ -56,8 +50,10 @@ class MainActivity : AppCompatActivity() {
             override fun onServiceConnected(className: ComponentName?, service: IBinder?) {
                 mediaServiceBinder = service as MediaService.MediaServiceBinder
                 try {
-                    mediaController = MediaControllerCompat(this@MainActivity,
-                            mediaServiceBinder?.getMediaSessionToken()!!)
+                    mediaController = MediaControllerCompat(
+                        this@MainActivity,
+                        mediaServiceBinder?.getMediaSessionToken()!!
+                    )
                     mediaController?.registerCallback(callback as MediaControllerCompat.Callback)
                     callback?.onPlaybackStateChanged(mediaController?.playbackState)
                     mediaController?.transportControls?.play()
@@ -75,7 +71,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        bindService(Intent(this, MediaService::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(
+            Intent(this, MediaService::class.java),
+            serviceConnection!!,
+            Context.BIND_AUTO_CREATE
+        )
 
         prevButton.setOnClickListener { previousTrack() }
         playButton.setOnClickListener { playTrack() }
@@ -116,27 +116,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun callbackNext() {
-        outputTextView.append("next track ${mediaController?.metadata?.description?.title} was chosen...\n")
+        val description = mediaController?.metadata?.description ?: return
+        outputTextView.append("next track ${description.title} was chosen...\n")
+        cover.setImageBitmap(description.iconBitmap)
+        title_track.text = description.title
         buttonChangeColor(BUTTON_NEXT)
     }
 
     private fun callbackPause() {
-        outputTextView.append("track ${mediaController?.metadata?.description?.title} was paused...\n")
+        val description = mediaController?.metadata?.description ?: return
+        outputTextView.append("track ${description.title} was paused...\n")
         buttonChangeColor(BUTTON_PAUSE)
     }
 
     private fun callbackStop() {
-        outputTextView.append("track ${mediaController?.metadata?.description?.title} was stopped...\n")
+        val description = mediaController?.metadata?.description ?: return
+        outputTextView.append("track ${description.title} was stopped...\n")
         buttonChangeColor(BUTTON_STOP)
     }
 
     private fun callbackPlay() {
-        outputTextView.append("track ${mediaController?.metadata?.description?.title} is playing...\n")
+        val description = mediaController?.metadata?.description ?: return
+        outputTextView.append("track ${description.title} is playing...\n")
+        cover.setImageBitmap(description.iconBitmap)
+        title_track.text = description.title
         buttonChangeColor(BUTTON_PLAY)
     }
 
     private fun callbackPrev() {
-        outputTextView.append("previous track ${mediaController?.metadata?.description?.title} was chosen...\n")
+        val description = mediaController?.metadata?.description ?: return
+        outputTextView.append("previous track ${description.title} was chosen...\n")
+        cover.setImageBitmap(description.iconBitmap)
+        title_track.text = description.title
         buttonChangeColor(BUTTON_PREVIOUS)
     }
 
@@ -166,7 +177,7 @@ class MainActivity : AppCompatActivity() {
             mediaController?.unregisterCallback(callback as MediaControllerCompat.Callback)
             mediaController = null
         }
-        unbindService(serviceConnection)
+        unbindService(serviceConnection!!)
         bluetoothIntentListener?.destroy()
     }
 

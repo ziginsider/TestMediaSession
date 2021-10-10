@@ -1,45 +1,62 @@
 package io.github.ziginsider.mediasessiontest
 
-import android.net.Uri
+import android.content.Context
+import android.graphics.Bitmap
+import com.bumptech.glide.Glide
+import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 /**
  * Mock music catalog
  */
-class TestMusicCatalog {
+class TestMusicCatalog(context: Context) {
 
-    class Track(val title: String,
-                val artist: String,
-                val bitmap: Int,
-                val uri: Uri,
-                val duration: Long)
+    init {
+        setCatalogFromJson(context)
+    }
 
-    private val catalog = arrayOf(
-            Track("Ice and Snow",
-                    "Rafael Krux",
-                    R.drawable.image1,
-                    Uri.parse("https://freepd.com/music/Ice and Snow.mp3"),
-                    (2 * 60 + 21) * 1000),
-            Track("Desert Fox",
-                    "Rafael Krux",
-                    R.drawable.image2,
-                    Uri.parse("https://freepd.com/music/Desert Fox.mp3"),
-                    (2 * 60 + 13) * 1000),
-            Track("Coy Koi",
-                    "Frank Nora",
-                    R.drawable.image3,
-                    Uri.parse("https://freepd.com/music/Coy Koi.mp3"),
-                    48 * 1000),
-            Track("Tarantella",
-                    "Kevin MacLeod",
-                    R.drawable.image4,
-                    Uri.parse("https://freepd.com/music/Village Tarantella.mp3"),
-                    53 * 1000),
-            Track("Bit Bit Loop",
-                    "Kevin MacLeod",
-                    R.drawable.image5,
-                    Uri.parse("https://freepd.com/music/Bit Bit Loop.mp3"),
-                    (1 * 60 + 17) * 1000)
+    @JsonClass(generateAdapter = true)
+    data class JsonTrack(
+        val title: String,
+        val artist: String,
+        val bitmapUri: String,
+        val trackUri: String,
+        val duration: Long
     )
+
+    val bitmaps = HashMap<String, Bitmap>(5)
+
+    private var _catalog: List<JsonTrack>? = null
+    private val catalog: List<JsonTrack> get() = requireNotNull(_catalog)
+
+    private fun setCatalogFromJson(context: Context) {
+        val moshi = Moshi.Builder()
+            .build()
+
+        val arrayType = Types.newParameterizedType(List::class.java, JsonTrack::class.java)
+        val adapter: JsonAdapter<List<JsonTrack>> = moshi.adapter(arrayType)
+
+        val file = "playlist.json"
+
+        val myJson = context.assets.open(file).bufferedReader().use { it.readText() }
+
+        _catalog = adapter.fromJson(myJson)
+
+        GlobalScope.launch(Dispatchers.Default) {
+            try {
+                _catalog?.forEach {
+                    val bitmap = Glide.with(context).asBitmap().load(it.bitmapUri).into(200, 200).get()
+                    bitmaps[it.bitmapUri] = bitmap
+                }
+            }
+            catch (e: Exception) {}
+        }
+    }
 
     val maxTrackIndex = catalog.size - 1
     var currentTrackIndex = 0
@@ -49,7 +66,7 @@ class TestMusicCatalog {
         get() = catalog[currentTrackIndex]
         private set
 
-    fun next(): Track {
+    fun next(): JsonTrack {
         if (currentTrackIndex == maxTrackIndex) {
             currentTrackIndex = 0
         } else {
@@ -58,7 +75,7 @@ class TestMusicCatalog {
         return currentTrack
     }
 
-    fun previous(): Track {
+    fun previous(): JsonTrack {
         if (currentTrackIndex == 0) {
             currentTrackIndex = maxTrackIndex
         } else {
@@ -68,5 +85,5 @@ class TestMusicCatalog {
     }
 
     fun getTrackByIndex(index: Int) = catalog[index]
-    fun getCatalog() = catalog
+    fun getTrackCatalog() = catalog
 }
